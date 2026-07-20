@@ -134,7 +134,63 @@ streamlit run streamlit_app.py   # (build on top of backend APIs)
 | MODIS Fire Data      | NASA FIRMS     | Real-time fire hotspot validation        |
 
 ---
+## 🏗️ System Architecture
 
+```
+                 Environmental Data
+                         │
+                         ▼
+               Data Preprocessing
+                         │
+                         ▼
+        Feature Engineering & Extraction
+                         │
+         ┌───────────────┴───────────────┐
+         ▼                               ▼
+ Wildfire Prediction            Distress Detection
+(Random Forest + XGBoost)     (TF-IDF + Logistic Regression)
+         │                               │
+         └───────────────┬───────────────┘
+                         ▼
+                 Decision Engine
+                         │
+                         ▼
+              Emergency Alert System
+                         │
+                         ▼
+              Interactive Dashboard
+```
+
+---
+## 📸 Application Screenshots
+
+### 🏠 Home Page
+![Home Page](output_images/Screenshot%202026-04-25%20082653.png)
+
+---
+
+### 🔥 Wildfire Prediction
+![Prediction](output_images/Screenshot%202026-04-25%20082703.png)
+
+---
+
+### 📊 Risk Analytics Dashboard
+![Analytics](output_images/Screenshot%202026-04-25%20082726.png)
+
+---
+
+### 🚨 Emergency Command Dashboard
+![Command Dashboard](output_images/Screenshot%202026-04-25%20082742.png)
+
+---
+
+### 📍 Live Alert Map
+![Map](output_images/Screenshot%202026-04-25%20082747.png)
+
+---
+
+### 📋 Alert Management
+![Alerts](output_images/Screenshot%202026-04-25%20082805.png)
 ## 🔮 Extending the System
 
 1. **More training data**: Add Kaggle datasets to `data/` and update `data_pipeline.py`
