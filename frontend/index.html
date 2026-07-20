@@ -1,0 +1,711 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>WildFireGuard | AI Disaster Intelligence</title>
+
+<!-- Chart.js for gauge + bar chart -->
+<script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/4.4.0/chart.umd.min.js"></script>
+<!-- Leaflet.js for live alert map -->
+<link  rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
+<script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
+
+<style>
+*{box-sizing:border-box;font-family:"Segoe UI",Arial,sans-serif}
+body{margin:0;min-height:100vh;color:white;
+  background:radial-gradient(circle at top left,rgba(255,122,24,.30),transparent 34%),
+             radial-gradient(circle at bottom right,rgba(26,255,129,.15),transparent 32%),
+             linear-gradient(135deg,#100b09,#3b1008,#09251b)}
+
+/* ── Navbar ────────────────────────────────────────────────── */
+.navbar{display:flex;justify-content:space-between;align-items:center;padding:16px 7%;
+  background:rgba(0,0,0,.38);backdrop-filter:blur(14px);border-bottom:1px solid rgba(255,255,255,.17);
+  position:sticky;top:0;z-index:100}
+.brand{font-size:25px;font-weight:900}.brand span{color:#ffbd61}
+.nav-actions a,.nav-actions button{color:white;text-decoration:none;padding:10px 15px;
+  border-radius:999px;background:rgba(255,255,255,.12);margin-left:8px;font-weight:800;
+  border:1px solid rgba(255,255,255,.17);cursor:pointer;font-size:14px}
+.nav-actions .logout{background:rgba(255,60,60,.25);border-color:rgba(255,80,80,.4)}
+
+/* ── Hero ──────────────────────────────────────────────────── */
+.hero{padding:48px 7% 24px;display:grid;grid-template-columns:1.08fr .92fr;gap:28px}
+h1{font-size:50px;line-height:1.06;margin:10px 0 14px}p{color:#f3d4c1;line-height:1.65}
+.status-pill{display:inline-flex;gap:8px;align-items:center;background:rgba(70,255,132,.14);
+  color:#a7ffc0;padding:9px 14px;border-radius:999px;font-weight:900}
+.dot{width:9px;height:9px;border-radius:50%;background:#48ff84;box-shadow:0 0 14px #48ff84}
+.hero-card,.panel,.stat,.result-box{background:rgba(255,255,255,.105);
+  border:1px solid rgba(255,255,255,.17);border-radius:26px;box-shadow:0 22px 70px rgba(0,0,0,.32)}
+.hero-card{padding:24px}.flow{display:grid;gap:10px;margin-top:14px}
+.flow div{padding:12px 14px;background:rgba(0,0,0,.22);border-radius:16px;
+  color:#ffe2cb;border:1px solid rgba(255,255,255,.09);font-weight:700}
+
+/* ── Main section ──────────────────────────────────────────── */
+.section{padding:18px 7% 55px}
+.stats{display:grid;grid-template-columns:repeat(4,1fr);gap:16px;margin-bottom:24px}
+.stat{padding:18px}.stat .value{font-size:29px;font-weight:950}.stat .label{color:#e8c9b8;font-weight:800}
+.grid{display:grid;grid-template-columns:1fr 1fr;gap:24px}
+.panel{padding:24px}.panel h2{margin-top:0;font-size:24px}
+.form-grid{display:grid;grid-template-columns:1fr 1fr;gap:14px}
+label{font-size:13px;color:#ffe0c4;display:block;margin-bottom:7px;font-weight:800}
+input,textarea{width:100%;padding:12px 13px;border-radius:14px;border:1px solid rgba(255,255,255,.18);
+  background:rgba(0,0,0,.28);color:white;outline:none}
+textarea{min-height:100px;resize:vertical}
+button{border:none;padding:13px 17px;border-radius:15px;
+  background:linear-gradient(135deg,#ff8b22,#ff3131);color:white;font-weight:900;
+  cursor:pointer;margin-top:10px;box-shadow:0 12px 35px rgba(255,75,38,.30)}
+.secondary{background:linear-gradient(135deg,#1689ff,#00c9d8);box-shadow:0 12px 35px rgba(0,188,212,.20)}
+.danger{background:linear-gradient(135deg,#ff1744,#b00020)}
+.ghost{background:rgba(255,255,255,.12);box-shadow:none;border:1px solid rgba(255,255,255,.17)}
+.result-box{margin-top:18px;padding:18px;display:none}
+.metric-grid{display:grid;grid-template-columns:repeat(4,1fr);gap:12px;margin:14px 0}
+.metric{background:rgba(0,0,0,.23);border-radius:18px;padding:14px;text-align:center;
+  border:1px solid rgba(255,255,255,.09)}
+.metric small{color:#e8c9b8;font-weight:800}.metric .num{font-size:25px;font-weight:950;margin-top:5px}
+.badge{display:inline-block;padding:8px 13px;border-radius:999px;font-weight:900;margin:5px 6px 5px 0}
+.high,.critical{background:rgba(255,51,51,.20);color:#ffabab;border:1px solid rgba(255,80,80,.36)}
+.medium{background:rgba(255,193,7,.20);color:#ffe08a;border:1px solid rgba(255,193,7,.36)}
+.low{background:rgba(76,255,128,.18);color:#a8ffc1;border:1px solid rgba(76,255,128,.36)}
+.explain-list{margin:12px 0 0;padding-left:20px;color:#ffe8d7;line-height:1.7}
+.action-box{background:rgba(255,179,71,.13);border:1px solid rgba(255,179,71,.32);
+  padding:14px;border-radius:16px;margin-top:14px;color:#ffe0b6;font-weight:800}
+.breakdown{display:grid;gap:9px;margin-top:12px}
+.bar-row{display:grid;grid-template-columns:150px 1fr 55px;gap:10px;align-items:center;font-size:13px;color:#ffe8d7}
+.bar{height:10px;background:rgba(255,255,255,.12);border-radius:999px;overflow:hidden}
+.bar span{display:block;height:100%;background:linear-gradient(90deg,#ffd36a,#ff3434);border-radius:999px}
+.location-status{margin-top:10px;color:#a7ffc0;font-weight:800;font-size:13px}
+
+/* ── Voice button ──────────────────────────────────────────── */
+.voice-row{display:flex;align-items:center;gap:10px;margin-top:8px}
+#micBtn{padding:13px 16px;border-radius:15px;background:rgba(255,255,255,.15);
+  border:1px solid rgba(255,255,255,.25);box-shadow:none;margin-top:0;font-size:20px;width:54px}
+#micBtn.recording{background:rgba(255,50,50,.35);border-color:#ff4444;
+  animation:pulse .7s ease-in-out infinite alternate}
+#voiceStatus{font-size:13px;color:#ffe8d7;font-weight:700}
+@keyframes pulse{to{box-shadow:0 0 18px rgba(255,60,60,.7)}}
+
+/* ── Gauge canvas wrapper ──────────────────────────────────── */
+.gauge-wrap{display:flex;flex-direction:column;align-items:center;margin:18px 0 0}
+.gauge-wrap canvas{max-width:220px}
+.gauge-label{font-size:13px;color:#ffe8d7;font-weight:800;margin-top:4px}
+
+/* ── SHAP bar chart ────────────────────────────────────────── */
+.chart-box{background:rgba(0,0,0,.22);border-radius:18px;padding:16px;margin-top:14px}
+.chart-box h4{margin:0 0 10px;font-size:14px;color:#ffd6a0}
+
+/* ── Live map section ──────────────────────────────────────── */
+.map-section{padding:0 7% 50px}
+.map-section h2{font-size:24px;margin-bottom:12px}
+#alertMap{height:380px;border-radius:22px;border:1px solid rgba(255,255,255,.18);
+  overflow:hidden;z-index:1}
+
+/* ── Mini map (distress panel) ─────────────────────────────── */
+.mini-map{margin-top:14px;height:160px;border-radius:18px;overflow:hidden;
+  border:1px solid rgba(255,255,255,.17);background:linear-gradient(135deg,#18332a,#43231d);
+  position:relative}
+.mini-map:before{content:"";position:absolute;inset:0;
+  background-image:linear-gradient(rgba(255,255,255,.06) 1px,transparent 1px),
+                   linear-gradient(90deg,rgba(255,255,255,.06) 1px,transparent 1px);
+  background-size:28px 28px}
+.pin{position:absolute;left:55%;top:45%;transform:translate(-50%,-50%);font-size:34px;
+  filter:drop-shadow(0 0 12px #ff3333)}
+
+.footer{padding:25px 7%;text-align:center;color:#d5b9a8;background:rgba(0,0,0,.26)}
+
+/* ── Leaflet popup custom style ────────────────────────────── */
+.leaflet-popup-content-wrapper{background:rgba(20,10,5,.92);color:#ffe8d7;border-radius:14px;
+  border:1px solid rgba(255,189,97,.4)}
+.leaflet-popup-tip{background:rgba(20,10,5,.92)}
+
+@media(max-width:950px){
+  .hero,.grid{grid-template-columns:1fr}
+  .stats,.metric-grid{grid-template-columns:repeat(2,1fr)}
+  h1{font-size:36px}.form-grid{grid-template-columns:1fr}
+}
+</style>
+</head>
+<body>
+
+<!-- ═══════════════ NAVBAR ════════════════════════════════════ -->
+<nav class="navbar">
+  <div class="brand">🔥 WildFire<span>Guard</span></div>
+  <div class="nav-actions">
+    <a href="/admin">Admin Dashboard</a>
+    <a href="/demo/high-risk" target="_blank">Demo API</a>
+    <button onclick="loadHealth()">Check System</button>
+    <a href="/logout" class="logout">Logout</a>
+  </div>
+</nav>
+
+<!-- ═══════════════ HERO ══════════════════════════════════════ -->
+<section class="hero">
+  <div>
+    <div class="status-pill"><span class="dot"></span> AI Emergency System Live</div>
+    <h1>Wildfire Prediction + Distress Intelligence Platform</h1>
+    <p>A complete AI disaster-response system that predicts wildfire risk, explains the reason using SHAP, detects voice/text distress signals, creates emergency alerts, and supports admin response decisions.</p>
+    <button onclick="predictWildfire()">Run High-Risk Demo</button>
+    <button class="secondary" onclick="detectDistress()">Run Distress Demo</button>
+  </div>
+  <div class="hero-card">
+    <h2>System Overview</h2>
+    <p>WildFireGuard connects wildfire prediction, distress detection, GPS-based alerting, database storage and admin response tracking.</p>
+    <div class="flow">
+      <div><b>Prediction:</b> ML model (RF + XGBoost) processes environmental inputs.</div>
+      <div><b>SHAP XAI:</b> Top contributing features explained with SHAP values.</div>
+      <div><b>Response:</b> Alerts stored, displayed and tracked by admin dashboard.</div>
+    </div>
+    <div id="healthBox" class="action-box">System health will appear here.</div>
+  </div>
+</section>
+
+<!-- ═══════════════ STATS ═════════════════════════════════════ -->
+<section class="section">
+  <div class="stats">
+    <div class="stat"><div class="value">18</div><div class="label">Model Features</div></div>
+    <div class="stat"><div class="value">RF+XGB</div><div class="label">Ensemble Model</div></div>
+    <div class="stat"><div class="value">SHAP</div><div class="label">Explainable AI</div></div>
+    <div class="stat"><div class="value">LIVE</div><div class="label">Alert Workflow</div></div>
+  </div>
+
+  <!-- ═══ MAIN TWO-COLUMN GRID ═══ -->
+  <div class="grid">
+
+    <!-- ── LEFT: Wildfire Prediction ── -->
+    <div class="panel">
+      <h2>🔥 Wildfire Risk Prediction</h2>
+      <div class="form-grid">
+        <div><label>Location Name</label><input id="location_name" value="Demo Forest Zone"></div>
+        <div><label>Temperature (°C)</label><input id="temperature_c" type="number" value="38"></div>
+        <div><label>Humidity (%)</label><input id="humidity_percent" type="number" value="25"></div>
+        <div><label>Wind Speed (km/h)</label><input id="wind_speed_kmh" type="number" value="45"></div>
+        <div><label>Air Quality Index</label><input id="air_quality_index" type="number" value="180"></div>
+        <div><label>Smoke Detected (0/1)</label><input id="smoke_detected" type="number" value="1"></div>
+        <div><label>Sensor Risk Index</label><input id="sensor_risk_index" type="number" step="0.01" value="0.88"></div>
+        <div><label>Power Line Risk</label><input id="power_line_risk" type="number" step="0.01" value="0.82"></div>
+        <div><label>Human Activity Index</label><input id="human_activity_index" type="number" step="0.01" value="0.76"></div>
+        <div><label>Vegetation Density</label><input id="vegetation_density" type="number" step="0.01" value="0.90"></div>
+        <div><label>Vegetation Dryness</label><input id="vegetation_dryness" type="number" step="0.01" value="0.85"></div>
+        <div><label>Sparking Probability</label><input id="sparking_probability" type="number" step="0.01" value="0.80"></div>
+      </div>
+      <button onclick="predictWildfire()">Predict + Create Alert</button>
+      <button class="ghost" onclick="fillLowRisk()">Try Low-Risk Scenario</button>
+
+      <!-- Prediction result -->
+      <div id="predictionResult" class="result-box">
+        <!-- Gauge + SHAP chart injected by JS -->
+      </div>
+    </div>
+
+    <!-- ── RIGHT: Distress Detection ── -->
+    <div class="panel">
+      <h2>🚨 Distress Signal Detection</h2>
+      <label>Emergency Message / Tweet / Voice Transcript</label>
+      <textarea id="distress_message">fire spreading near us please help we are trapped in smoke</textarea>
+
+      <!-- ── VOICE INPUT ROW ─────────────────────────────────────
+           Uses Web Speech API (SpeechRecognition) built into Chrome/Edge.
+           Speaking fills the textarea then calls /distress automatically.
+           Pipeline: microphone → SpeechRecognition → textarea → /distress
+           Future upgrade: mic → audio blob → /distress/audio →
+             librosa (MFCC/pitch/energy/ZCR) → CNN/SVM → emotion score
+      -->
+      <div class="voice-row">
+        <button id="micBtn" title="Speak your distress message" onclick="toggleVoice()">🎙</button>
+        <span id="voiceStatus">Click 🎙 to speak</span>
+      </div>
+
+      <div class="form-grid" style="margin-top:12px">
+        <div><label>Latitude</label><input id="latitude" type="number" step="0.0001" value="12.9716"></div>
+        <div><label>Longitude</label><input id="longitude" type="number" step="0.0001" value="77.5946"></div>
+      </div>
+      <button class="secondary" onclick="getUserLocation()">📍 Detect My Location</button>
+      <div id="locationStatus" class="location-status">Location: Demo coordinates active</div>
+      <button class="danger" onclick="detectDistress()">Detect Distress + Alert</button>
+      <button class="secondary" onclick="manualAlert()">🆘 Emergency Button</button>
+      <button class="ghost" onclick="window.open('/admin','_blank')">Open Admin</button>
+
+      <div class="mini-map"><span class="pin">📍</span></div>
+      <div id="distressResult" class="result-box"></div>
+    </div>
+  </div>
+</section>
+
+<!-- ═══════════════ LIVE ALERT MAP ════════════════════════════ -->
+<section class="map-section">
+  <h2>🗺 Live Alert Map</h2>
+  <div id="alertMap"></div>
+</section>
+
+<footer class="footer">WildFireGuard | AI-powered proactive wildfire prediction and emergency response system</footer>
+
+<!-- hidden canvases for charts (cloned into result box by JS) -->
+<canvas id="gaugeCanvasTpl"  style="display:none"></canvas>
+<canvas id="shapCanvasTpl"   style="display:none"></canvas>
+
+<script>
+// ═══════════════════════════════════════════════════════════════════
+// HELPERS
+// ═══════════════════════════════════════════════════════════════════
+function getNumber(id){ return Number(document.getElementById(id).value); }
+function badgeClass(v){
+  const s=(v||"low").toLowerCase();
+  if(s.includes("critical"))return"critical";
+  if(s.includes("high"))return"high";
+  if(s.includes("medium"))return"medium";
+  return"low";
+}
+
+// ═══════════════════════════════════════════════════════════════════
+// HEALTH CHECK
+// ═══════════════════════════════════════════════════════════════════
+async function loadHealth(){
+  const res = await fetch("/health");
+  const h   = await res.json();
+  document.getElementById("healthBox").innerHTML =
+    `Backend: <b>${h.backend}</b> | Model: <b>${h.model}</b> | Features: <b>${h.wildfire_features}</b> | Alerts: <b>${h.alerts}</b> | SHAP: <b>${h.shap_available?"✓ On":"Fallback"}</b>`;
+}
+
+// ═══════════════════════════════════════════════════════════════════
+// GPS LOCATION
+// ═══════════════════════════════════════════════════════════════════
+function getUserLocation(){
+  const status = document.getElementById("locationStatus");
+  if(!navigator.geolocation){ status.innerHTML="GPS not supported"; return; }
+  status.innerHTML = "Detecting GPS location...";
+  navigator.geolocation.getCurrentPosition(
+    pos => {
+      document.getElementById("latitude").value  = pos.coords.latitude.toFixed(6);
+      document.getElementById("longitude").value = pos.coords.longitude.toFixed(6);
+      status.innerHTML = `Location detected: ${pos.coords.latitude.toFixed(6)}, ${pos.coords.longitude.toFixed(6)}`;
+    },
+    err => { status.innerHTML = "Location unavailable — demo coordinates active."; }
+  );
+}
+
+// ═══════════════════════════════════════════════════════════════════
+// FILL LOW RISK SCENARIO
+// ═══════════════════════════════════════════════════════════════════
+function fillLowRisk(){
+  const vals={temperature_c:24,humidity_percent:70,wind_speed_kmh:10,
+              air_quality_index:40,smoke_detected:0,sensor_risk_index:.10,
+              power_line_risk:.15,human_activity_index:.10,
+              vegetation_density:.30,vegetation_dryness:.20,sparking_probability:.10};
+  Object.keys(vals).forEach(k=>document.getElementById(k).value=vals[k]);
+}
+
+// ═══════════════════════════════════════════════════════════════════
+// VOICE / SPEECH RECOGNITION
+// Web Speech API: browser converts mic audio → text
+// Text is placed in the textarea and sent to /distress
+// ═══════════════════════════════════════════════════════════════════
+let recognition  = null;
+let isRecording  = false;
+
+function toggleVoice(){
+  // Check browser support
+  const SpeechRecognition = window.SpeechRecognition || window.webkitSpeechRecognition;
+  if(!SpeechRecognition){
+    document.getElementById("voiceStatus").textContent =
+      "Voice not supported in this browser. Please use Chrome or Edge.";
+    return;
+  }
+
+  if(isRecording){
+    // Stop current recording
+    recognition.stop();
+    return;
+  }
+
+  recognition              = new SpeechRecognition();
+  recognition.lang         = "en-US";
+  recognition.interimResults = true;
+  recognition.maxAlternatives = 1;
+
+  recognition.onstart = () => {
+    isRecording = true;
+    document.getElementById("micBtn").classList.add("recording");
+    document.getElementById("voiceStatus").textContent = "🔴 Listening... speak now";
+  };
+
+  recognition.onresult = (event) => {
+    // Combine all result parts (handles interim results)
+    let transcript = "";
+    for(let i = event.resultIndex; i < event.results.length; i++){
+      transcript += event.results[i][0].transcript;
+    }
+    document.getElementById("distress_message").value = transcript;
+    document.getElementById("voiceStatus").textContent = `Heard: "${transcript}"`;
+  };
+
+  recognition.onend = () => {
+    isRecording = false;
+    document.getElementById("micBtn").classList.remove("recording");
+    // Auto-submit distress detection after speech ends
+    const msg = document.getElementById("distress_message").value.trim();
+    if(msg){
+      document.getElementById("voiceStatus").textContent = "✅ Transcribed — analysing...";
+      detectDistress();
+    } else {
+      document.getElementById("voiceStatus").textContent = "No speech detected. Try again.";
+    }
+  };
+
+  recognition.onerror = (event) => {
+    isRecording = false;
+    document.getElementById("micBtn").classList.remove("recording");
+    document.getElementById("voiceStatus").textContent =
+      `Error: ${event.error}. Make sure mic is allowed.`;
+  };
+
+  recognition.start();
+}
+
+// ═══════════════════════════════════════════════════════════════════
+// RISK SCORE GAUGE (Chart.js doughnut)
+// Ranges: 0–35 Low | 35–60 Medium | 60–80 High | 80–100 Critical
+// ═══════════════════════════════════════════════════════════════════
+let gaugeChart = null;
+
+function drawGauge(containerId, score){
+  const canvas = document.createElement("canvas");
+  canvas.id    = "gaugeCanvas_" + containerId;
+  canvas.width = 220; canvas.height = 130;
+
+  const wrap  = document.getElementById(containerId);
+  if(!wrap) return;
+  wrap.appendChild(canvas);
+
+  const pct    = Math.min(Math.max(score, 0), 100);
+  const remain = 100 - pct;
+
+  // Colour by range
+  let colour = "#4cff82";   // Low
+  let label  = "Low";
+  if(pct >= 80){ colour="#ff3333"; label="Critical"; }
+  else if(pct >= 60){ colour="#ff6a00"; label="High"; }
+  else if(pct >= 35){ colour="#ffd700"; label="Medium"; }
+
+  if(gaugeChart) gaugeChart.destroy();
+
+  gaugeChart = new Chart(canvas, {
+    type: "doughnut",
+    data: {
+      datasets:[{
+        data: [pct, remain],
+        backgroundColor: [colour, "rgba(255,255,255,.10)"],
+        borderWidth: 0,
+        circumference: 180,
+        rotation: 270,
+      }]
+    },
+    options:{
+      responsive:false,
+      cutout:"75%",
+      plugins:{
+        legend:{display:false},
+        tooltip:{enabled:false},
+      }
+    },
+    plugins:[{
+      id:"gaugeText",
+      afterDraw(chart){
+        const {ctx,chartArea:{top,left,right,bottom}}=chart;
+        ctx.save();
+        ctx.textAlign="center";
+        ctx.fillStyle="#fff";
+        ctx.font="bold 26px Segoe UI";
+        ctx.fillText(Math.round(pct), (left+right)/2, bottom-10);
+        ctx.font="bold 13px Segoe UI";
+        ctx.fillStyle=colour;
+        ctx.fillText(label, (left+right)/2, bottom+12);
+        ctx.restore();
+      }
+    }]
+  });
+}
+
+// ═══════════════════════════════════════════════════════════════════
+// SHAP / FEATURE CONTRIBUTION BAR CHART
+// ═══════════════════════════════════════════════════════════════════
+let shapChart = null;
+
+function drawShapChart(containerId, contributions){
+  const canvas   = document.createElement("canvas");
+  canvas.id      = "shapCanvas_" + containerId;
+  canvas.height  = 180;
+
+  const wrap = document.getElementById(containerId);
+  if(!wrap) return;
+  wrap.appendChild(canvas);
+
+  const labels = contributions.map(c => c.label || c.feature);
+  const values = contributions.map(c => c.shap_value);
+  const colors = values.map(v => v > 0 ? "rgba(255,107,53,.85)" : "rgba(53,200,150,.85)");
+
+  if(shapChart) shapChart.destroy();
+
+  shapChart = new Chart(canvas, {
+    type:"bar",
+    data:{
+      labels,
+      datasets:[{
+        label:"SHAP Contribution",
+        data: values,
+        backgroundColor: colors,
+        borderRadius: 6,
+      }]
+    },
+    options:{
+      indexAxis:"y",
+      responsive:true,
+      plugins:{
+        legend:{display:false},
+        tooltip:{
+          callbacks:{
+            label: ctx => `${ctx.formattedValue} — ${contributions[ctx.dataIndex].direction}`
+          }
+        }
+      },
+      scales:{
+        x:{
+          grid:{color:"rgba(255,255,255,.07)"},
+          ticks:{color:"#ffe8d7",font:{size:11}}
+        },
+        y:{
+          grid:{color:"rgba(255,255,255,.07)"},
+          ticks:{color:"#ffe8d7",font:{size:12},font:{weight:"700"}}
+        }
+      }
+    }
+  });
+}
+
+// ═══════════════════════════════════════════════════════════════════
+// SCORE BREAKDOWN BARS (existing)
+// ═══════════════════════════════════════════════════════════════════
+function renderBreakdown(b){
+  if(!b) return "";
+  return `<h4 style="margin:14px 0 8px;color:#ffd6a0">Emergency Score Breakdown</h4>
+    <div class="breakdown">`
+    + Object.entries(b).map(([k,v])=>
+      `<div class="bar-row">
+        <span>${k.replaceAll("_"," ")}</span>
+        <div class="bar"><span style="width:${Math.min(v*2.5,100)}%"></span></div>
+        <b>${v}</b>
+      </div>`
+    ).join("") + `</div>`;
+}
+
+// ═══════════════════════════════════════════════════════════════════
+// RENDER PREDICTION RESULT
+// ═══════════════════════════════════════════════════════════════════
+function renderPrediction(data){
+  const r = document.getElementById("predictionResult");
+  r.style.display = "block";
+
+  const ex = (data.explanations||[]).map(x=>`<li>${x}</li>`).join("");
+  const shap = data.shap_explanation || {};
+  const shapSource = shap.source === "shap" ? "SHAP TreeExplainer" : "Rule-based fallback";
+
+  r.innerHTML = `
+    <h3>AI Prediction Result</h3>
+    <span class="badge ${badgeClass(data.risk_level)}">${data.risk_level} Risk</span>
+    <span class="badge ${badgeClass(data.decision?.final_priority)}">${data.decision?.final_priority} Priority</span>
+
+    <div class="metric-grid">
+      <div class="metric"><small>Confidence</small><div class="num">${data.confidence}%</div></div>
+      <div class="metric"><small>Emergency Score</small><div class="num">${data.decision?.emergency_score}</div></div>
+      <div class="metric"><small>Alert Status</small><div class="num">${data.alert_created?"✓ Created":"–"}</div></div>
+      <div class="metric"><small>Features</small><div class="num">${data.feature_count}</div></div>
+    </div>
+
+    <p><b>Model:</b> ${data.model_used} &nbsp;|&nbsp; <b>Alert ID:</b> ${data.alert_id||"Not generated"}</p>
+
+    <!-- Risk Score Gauge -->
+    <div class="gauge-wrap" id="gaugeWrap">
+      <div class="gauge-label">Risk Score Gauge</div>
+    </div>
+
+    <!-- SHAP Feature Contributions -->
+    <div class="chart-box">
+      <h4>📊 Top Model Contributors <small style="color:#aaa">(${shapSource})</small></h4>
+      <div id="shapWrap"></div>
+    </div>
+
+    ${renderBreakdown(data.decision?.score_breakdown)}
+
+    <h4>Why this risk?</h4>
+    <ul class="explain-list">${ex}</ul>
+    <div class="action-box">Recommended Action: ${data.recommended_action}</div>
+  `;
+
+  // Draw gauge with emergency score
+  drawGauge("gaugeWrap", data.decision?.emergency_score || 0);
+
+  // Draw SHAP bar chart
+  if(shap.contributions && shap.contributions.length){
+    drawShapChart("shapWrap", shap.contributions);
+  }
+
+  loadHealth();
+  refreshAlertMap();
+}
+
+// ═══════════════════════════════════════════════════════════════════
+// PREDICT WILDFIRE
+// ═══════════════════════════════════════════════════════════════════
+async function predictWildfire(){
+  const payload = {
+    location_name:       document.getElementById("location_name").value,
+    latitude:            getNumber("latitude"),
+    longitude:           getNumber("longitude"),
+    temperature_c:       getNumber("temperature_c"),
+    humidity_percent:    getNumber("humidity_percent"),
+    wind_speed_kmh:      getNumber("wind_speed_kmh"),
+    air_quality_index:   getNumber("air_quality_index"),
+    smoke_detected:      getNumber("smoke_detected"),
+    sensor_risk_index:   getNumber("sensor_risk_index"),
+    power_line_risk:     getNumber("power_line_risk"),
+    human_activity_index:getNumber("human_activity_index"),
+    vegetation_density:  getNumber("vegetation_density"),
+    vegetation_dryness:  getNumber("vegetation_dryness"),
+    sparking_probability:getNumber("sparking_probability"),
+    campfire_reports:    3,
+    illegal_burning_reports:1,
+    crowd_density:       90
+  };
+  const res = await fetch("/predict",{method:"POST",headers:{"Content-Type":"application/json"},body:JSON.stringify(payload)});
+  renderPrediction(await res.json());
+}
+
+// ═══════════════════════════════════════════════════════════════════
+// DETECT DISTRESS
+// ═══════════════════════════════════════════════════════════════════
+async function detectDistress(){
+  const payload = {
+    message:             document.getElementById("distress_message").value,
+    latitude:            getNumber("latitude"),
+    longitude:           getNumber("longitude"),
+    wildfire_risk:       "High",
+    power_line_risk:     .82,
+    human_activity_index:.76,
+    sensor_risk_index:   .88
+  };
+  const res  = await fetch("/distress",{method:"POST",headers:{"Content-Type":"application/json"},body:JSON.stringify(payload)});
+  const data = await res.json();
+
+  const box = document.getElementById("distressResult");
+  box.style.display = "block";
+  box.innerHTML = `
+    <h3>Distress Detection Result</h3>
+    <span class="badge ${data.is_distress?"high":"low"}">${data.label}</span>
+    <span class="badge ${badgeClass(data.decision?.final_priority)}">${data.decision?.final_priority} Priority</span>
+    <div class="metric-grid">
+      <div class="metric"><small>Confidence</small><div class="num">${data.confidence}%</div></div>
+      <div class="metric"><small>Distress Prob.</small><div class="num">${data.distress_probability}%</div></div>
+      <div class="metric"><small>Score</small><div class="num">${data.decision?.emergency_score}</div></div>
+      <div class="metric"><small>Alert</small><div class="num">${data.alert_created?"✓ Created":"–"}</div></div>
+    </div>
+    <p><b>Alert ID:</b> ${data.alert_id||"Not generated"}</p>
+    <p><b>Processed:</b> ${data.message_processed}</p>
+    ${renderBreakdown(data.decision?.score_breakdown)}
+    <div class="action-box">Recommended Action: ${data.recommended_action}</div>
+  `;
+
+  loadHealth();
+  refreshAlertMap();
+}
+
+// ═══════════════════════════════════════════════════════════════════
+// MANUAL EMERGENCY ALERT
+// ═══════════════════════════════════════════════════════════════════
+async function manualAlert(){
+  const payload = {
+    latitude: getNumber("latitude"), longitude: getNumber("longitude"),
+    message: "Manual emergency button pressed by user.",
+    risk_level:"High", priority:"HIGH"
+  };
+  const res  = await fetch("/alert",{method:"POST",headers:{"Content-Type":"application/json"},body:JSON.stringify(payload)});
+  const data = await res.json();
+  const box  = document.getElementById("distressResult");
+  box.style.display = "block";
+  box.innerHTML = `
+    <h3>Manual Emergency Alert</h3>
+    <span class="badge high">Alert Created</span>
+    <p><b>Alert ID:</b> ${data.alert_id}</p>
+    <div class="action-box">Emergency alert sent to admin dashboard.</div>
+  `;
+  loadHealth();
+  refreshAlertMap();
+}
+
+// ═══════════════════════════════════════════════════════════════════
+// LIVE ALERT MAP  (Leaflet + OpenStreetMap)
+// Pin colours: Critical/High → red | Medium → orange | Low → green
+// ═══════════════════════════════════════════════════════════════════
+let leafletMap = null;
+let mapMarkers = [];
+
+function initMap(){
+  leafletMap = L.map("alertMap").setView([20, 78], 4);
+  L.tileLayer("https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png",{
+    attribution:"© OpenStreetMap contributors",
+    maxZoom: 18
+  }).addTo(leafletMap);
+}
+
+function pinColour(alert){
+  const p = (alert.priority||"").toUpperCase();
+  const r = (alert.risk_level||"").toUpperCase();
+  if(p==="CRITICAL"||p==="HIGH"||r==="HIGH")   return "#ff3333";
+  if(p==="MEDIUM"||r==="MEDIUM")               return "#ffa500";
+  return "#2ecc71";
+}
+
+async function refreshAlertMap(){
+  if(!leafletMap) return;
+  const res  = await fetch("/alerts");
+  const data = await res.json();
+
+  // Clear old markers
+  mapMarkers.forEach(m => leafletMap.removeLayer(m));
+  mapMarkers = [];
+
+  (data.alerts||[]).forEach(a => {
+    const lat = a.latitude  || 12.9716;
+    const lng = a.longitude || 77.5946;
+    const col = pinColour(a);
+
+    const icon = L.divIcon({
+      className:"",
+      html:`<div style="width:14px;height:14px;border-radius:50%;background:${col};
+                border:3px solid rgba(255,255,255,.7);box-shadow:0 0 8px ${col}"></div>`,
+      iconSize:[14,14]
+    });
+
+    const marker = L.marker([lat, lng], {icon})
+      .bindPopup(`
+        <b>Alert ${a.alert_id}</b><br>
+        Risk: <b>${a.risk_level||"–"}</b> | Priority: <b>${a.priority||"–"}</b><br>
+        Status: <b>${a.status||"–"}</b><br>
+        <i>${(a.message||"").slice(0,100)}</i><br><br>
+        <b>Action:</b> ${(a.recommended_action||"Monitor.").slice(0,80)}
+      `, {maxWidth:260})
+      .addTo(leafletMap);
+
+    mapMarkers.push(marker);
+  });
+}
+
+// ═══════════════════════════════════════════════════════════════════
+// INIT
+// ═══════════════════════════════════════════════════════════════════
+loadHealth();
+getUserLocation();
+initMap();
+refreshAlertMap();
+// Refresh map every 10 seconds
+setInterval(refreshAlertMap, 10000);
+</script>
+</body>
+</html>

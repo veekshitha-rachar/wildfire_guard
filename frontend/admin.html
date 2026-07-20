@@ -1,0 +1,536 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>WildFireGuard Admin | Command Center</title>
+
+<!-- Leaflet.js -->
+<link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css"/>
+<script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
+
+<!-- Chart.js -->
+<script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.0/dist/chart.umd.min.js"></script>
+
+<style>
+*{box-sizing:border-box;font-family:"Segoe UI",Arial,sans-serif}
+body{margin:0;min-height:100vh;color:#fff;
+  background:radial-gradient(circle at top left,rgba(255,55,55,.22),transparent 35%),
+  linear-gradient(135deg,#070b12,#231010,#09251b)}
+
+/* ── Topbar ── */
+.topbar{padding:16px 6%;display:flex;align-items:center;justify-content:space-between;
+  background:rgba(0,0,0,.38);border-bottom:1px solid rgba(255,255,255,.14);
+  position:sticky;top:0;z-index:100;backdrop-filter:blur(14px)}
+.brand{font-size:23px;font-weight:950}.brand span{color:#ffbd61}
+.live{display:inline-flex;gap:8px;align-items:center;padding:8px 13px;border-radius:999px;
+  color:#9effbd;background:rgba(36,211,102,.16);font-weight:900;margin-left:10px}
+.dot{width:9px;height:9px;border-radius:50%;background:#4cff82;box-shadow:0 0 13px #4cff82}
+a,button{color:white;text-decoration:none;border:none;cursor:pointer}
+.btn{padding:10px 14px;border-radius:12px;background:rgba(255,255,255,.12);
+  font-weight:800;margin-left:8px;border:1px solid rgba(255,255,255,.14)}
+.btn.danger{background:rgba(255,50,50,.18);border-color:rgba(255,80,80,.3)}
+
+/* ── Wrap ── */
+.wrap{padding:28px 6%}
+
+/* ── Hero ── */
+.hero{background:rgba(255,255,255,.10);border:1px solid rgba(255,255,255,.16);
+  border-radius:28px;padding:24px;margin-bottom:20px;
+  box-shadow:0 18px 55px rgba(0,0,0,.28);display:grid;
+  grid-template-columns:1fr 340px;gap:20px}
+.hero h1{margin:0 0 8px;font-size:32px}.hero p{margin:0;color:#d7c3bb;line-height:1.6}
+.scorebox{background:rgba(0,0,0,.24);padding:13px;border-radius:16px;margin-top:12px}
+
+/* ── Map card (hero right) ── */
+.map-card{height:200px;border-radius:22px;overflow:hidden;border:1px solid rgba(255,255,255,.16)}
+
+/* ── Stats ── */
+.stats{display:grid;grid-template-columns:repeat(6,1fr);gap:14px;margin-bottom:18px}
+.stat{padding:18px;border-radius:22px;background:rgba(255,255,255,.11);
+  border:1px solid rgba(255,255,255,.15);box-shadow:0 15px 45px rgba(0,0,0,.23)}
+.stat .num{font-size:28px;font-weight:950}.stat .label{color:#dccbc3;font-weight:800}
+
+/* ── Filter buttons ── */
+.filters{display:flex;flex-wrap:wrap;gap:10px;margin-bottom:18px}
+.filter-btn{padding:10px 14px;border-radius:999px;background:rgba(255,255,255,.12);
+  border:1px solid rgba(255,255,255,.15);font-weight:900}
+.filter-btn.active{background:linear-gradient(135deg,#ff7a18,#ff3030)}
+
+/* ── Charts grid ── */
+.charts-grid{display:grid;grid-template-columns:1fr 1fr 1fr;gap:18px;margin-bottom:20px}
+.chart-card{background:rgba(255,255,255,.10);border:1px solid rgba(255,255,255,.16);
+  border-radius:22px;padding:20px;box-shadow:0 15px 45px rgba(0,0,0,.23)}
+.chart-card h3{margin:0 0 14px;font-size:15px;color:#ffbd61}
+.chart-inner{height:200px;position:relative}
+
+/* ── Map section ── */
+.map-full{background:rgba(255,255,255,.10);border:1px solid rgba(255,255,255,.16);
+  border-radius:22px;padding:20px;box-shadow:0 15px 45px rgba(0,0,0,.23);margin-bottom:20px}
+.map-full h3{margin:0 0 14px;font-size:17px;color:#ffbd61}
+.map-full-inner{height:340px;border-radius:16px;overflow:hidden;border:1px solid rgba(255,255,255,.14)}
+
+/* ── Alerts table ── */
+.table-card{background:rgba(255,255,255,.10);border:1px solid rgba(255,255,255,.16);
+  border-radius:24px;overflow:hidden;box-shadow:0 18px 55px rgba(0,0,0,.28)}
+table{width:100%;border-collapse:collapse}
+th{background:rgba(0,0,0,.34);color:#ffd6b1;padding:14px;text-align:left;font-size:13px}
+td{padding:14px;border-top:1px solid rgba(255,255,255,.10);vertical-align:top;
+  color:#fff5ee;font-size:14px}
+.badge{display:inline-block;padding:7px 11px;border-radius:999px;font-size:12px;
+  font-weight:950;margin:3px}
+.HIGH,.CRITICAL{background:rgba(255,51,51,.18);color:#ffb0b0;border:1px solid rgba(255,80,80,.35)}
+.MEDIUM{background:rgba(255,193,7,.16);color:#ffe08a;border:1px solid rgba(255,193,7,.35)}
+.LOW{background:rgba(76,255,128,.16);color:#a8ffc1;border:1px solid rgba(76,255,128,.35)}
+.PENDING{background:rgba(255,193,7,.16);color:#ffe08a;border:1px solid rgba(255,193,7,.35)}
+.RESPONDED{background:rgba(33,150,243,.18);color:#9cd4ff;border:1px solid rgba(33,150,243,.35)}
+.RESOLVED{background:rgba(76,255,128,.16);color:#a8ffc1;border:1px solid rgba(76,255,128,.35)}
+.action-btn{display:block;margin-bottom:7px;width:100%;border-radius:11px;
+  padding:9px 10px;font-weight:900;background:linear-gradient(135deg,#2196f3,#00bcd4)}
+.resolve{background:linear-gradient(135deg,#2ecc71,#1e9b55)}
+.map-link{color:#8fe3ff;font-weight:900}
+.details{margin-top:8px;color:#ffd9bd;font-size:13px;line-height:1.5}
+.empty{text-align:center;padding:35px;color:#d9c8c0}
+
+@media(max-width:1100px){
+  .stats{grid-template-columns:repeat(3,1fr)}
+  .charts-grid{grid-template-columns:1fr}
+  .hero{grid-template-columns:1fr}
+  table,thead,tbody,th,td,tr{display:block}
+  thead{display:none}
+  tr{padding:12px;border-top:1px solid rgba(255,255,255,.14)}
+  td{border-top:none;padding:8px}
+}
+</style>
+</head>
+<body>
+
+<!-- ── Topbar ── -->
+<div class="topbar">
+  <div>
+    <span class="brand">🔥 WildFire<span>Guard</span> Command</span>
+    <span class="live"><span class="dot"></span>LIVE</span>
+  </div>
+  <div>
+    <a class="btn" href="/">User App</a>
+    <button class="btn" onclick="refreshData()">↻ Refresh</button>
+    <button class="btn" onclick="clearAll()">Clear Demo</button>
+    <a class="btn danger" href="/logout">Logout</a>
+  </div>
+</div>
+
+<main class="wrap">
+
+  <!-- ── Hero ── -->
+  <section class="hero">
+    <div>
+      <h1>Emergency Response Command Dashboard</h1>
+      <p>Monitor wildfire risk alerts, distress signals, SHAP AI explanations, map locations and full response lifecycle.</p>
+      <div class="scorebox" id="systemLine">System loading...</div>
+    </div>
+    <!-- Mini live map (hero) -->
+    <div class="map-card" id="heroMap"></div>
+  </section>
+
+  <!-- ── Stats ── -->
+  <section class="stats">
+    <div class="stat"><div class="num" id="totalAlerts">0</div><div class="label">Total</div></div>
+    <div class="stat"><div class="num" id="pendingAlerts">0</div><div class="label">Pending</div></div>
+    <div class="stat"><div class="num" id="respondedAlerts">0</div><div class="label">Responded</div></div>
+    <div class="stat"><div class="num" id="resolvedAlerts">0</div><div class="label">Resolved</div></div>
+    <div class="stat"><div class="num" id="highAlerts">0</div><div class="label">High/Critical</div></div>
+    <div class="stat"><div class="num" id="distressAlerts">0</div><div class="label">Distress</div></div>
+  </section>
+
+  <!-- ── Visualization Charts ── -->
+  <div class="charts-grid">
+
+    <!-- Alert Status Donut -->
+    <div class="chart-card">
+      <h3>📊 Alert Status Distribution</h3>
+      <div class="chart-inner"><canvas id="statusDonut"></canvas></div>
+    </div>
+
+    <!-- Alert Trend Line -->
+    <div class="chart-card">
+      <h3>📈 Alert Trend Over Time</h3>
+      <div class="chart-inner"><canvas id="trendLine"></canvas></div>
+    </div>
+
+    <!-- Priority Breakdown Bar -->
+    <div class="chart-card">
+      <h3>🔥 Priority Breakdown</h3>
+      <div class="chart-inner"><canvas id="priorityBar"></canvas></div>
+    </div>
+
+  </div>
+
+  <!-- ── Full Alert Map ── -->
+  <div class="map-full">
+    <h3>🗺 Live Alert Map — All Incidents</h3>
+    <div class="map-full-inner" id="alertMapFull"></div>
+  </div>
+
+  <!-- ── Filters ── -->
+  <div class="filters">
+    <button class="filter-btn active" onclick="setFilter('ALL',this)">All</button>
+    <button class="filter-btn" onclick="setFilter('PENDING',this)">🔴 Pending</button>
+    <button class="filter-btn" onclick="setFilter('RESPONDED',this)">✅ Responded</button>
+    <button class="filter-btn" onclick="setFilter('RESOLVED',this)">🟢 Resolved</button>
+    <button class="filter-btn" onclick="setPriority('HIGH',this)">🔥 High Risk</button>
+    <button class="filter-btn" onclick="setPriority('MEDIUM',this)">⚠ Medium</button>
+    <button class="filter-btn" onclick="clearFilters()">Clear Filters</button>
+  </div>
+
+  <!-- ── Alerts Table ── -->
+  <div class="table-card">
+    <table>
+      <thead>
+        <tr>
+          <th>Incident</th><th>Location</th><th>Message</th>
+          <th>Risk</th><th>AI Insight</th><th>Response</th>
+        </tr>
+      </thead>
+      <tbody id="alertsTable">
+        <tr><td colspan="6" class="empty">Loading alerts...</td></tr>
+      </tbody>
+    </table>
+  </div>
+
+</main>
+
+<script>
+/* ═══════════════════════════════════════════════════════
+   GLOBALS
+═══════════════════════════════════════════════════════ */
+let currentStatus   = "ALL";
+let currentPriority = "";
+let statusDonutChart= null;
+let trendLineChart  = null;
+let priorityBarChart= null;
+let heroLeaflet     = null;
+let fullLeaflet     = null;
+let heroMarkers     = [];
+let fullMarkers     = [];
+
+/* ═══════════════════════════════════════════════════════
+   UTILS
+═══════════════════════════════════════════════════════ */
+function mapLink(lat,lng){return`https://www.google.com/maps?q=${lat},${lng}`}
+function formatTime(v){return v?new Date(v).toLocaleString():"-"}
+function badge(v){const x=(v||"LOW").toUpperCase();return`<span class="badge ${x}">${x}</span>`}
+function priorityColor(p){
+  const s=(p||"").toUpperCase();
+  if(s==="CRITICAL"||s==="HIGH") return"#ff3131";
+  if(s==="MEDIUM") return"#ffd36a";
+  return"#4cff80";
+}
+
+/* ═══════════════════════════════════════════════════════
+   HEALTH
+═══════════════════════════════════════════════════════ */
+async function loadHealth(){
+  try{
+    const res = await fetch("/health");
+    const h   = await res.json();
+    document.getElementById("systemLine").innerHTML =
+      `Backend <b>${h.backend}</b> | Model <b>${h.model}</b> | ` +
+      `Features <b>${h.wildfire_features}</b> | Active alerts <b>${h.alerts}</b> | ` +
+      `SHAP <b>${h.shap_available?"✓ Active":"Fallback"}</b>`;
+  }catch(e){
+    document.getElementById("systemLine").textContent = "⚠ Backend not reachable";
+  }
+}
+
+/* ═══════════════════════════════════════════════════════
+   SUMMARY + CHARTS
+═══════════════════════════════════════════════════════ */
+async function loadSummary(){
+  const res = await fetch("/alerts/summary");
+  const s   = await res.json();
+  document.getElementById("totalAlerts").textContent    = s.total_alerts||0;
+  document.getElementById("pendingAlerts").textContent  = s.pending||0;
+  document.getElementById("respondedAlerts").textContent= s.responded||0;
+  document.getElementById("resolvedAlerts").textContent = s.resolved||0;
+  document.getElementById("highAlerts").textContent     = (s.high||0)+(s.critical||0);
+  document.getElementById("distressAlerts").textContent = s.distress_alerts||0;
+
+  // Update status donut
+  updateStatusDonut(s.pending||0, s.responded||0, s.resolved||0);
+
+  // Update priority bar
+  updatePriorityBar(s.critical||0, s.high||0, s.medium||0, s.low||0);
+}
+
+/* ═══════════════════════════════════════════════════════
+   STATUS DONUT CHART
+═══════════════════════════════════════════════════════ */
+function buildStatusDonut(){
+  const ctx = document.getElementById("statusDonut").getContext("2d");
+  statusDonutChart = new Chart(ctx,{
+    type:"doughnut",
+    data:{
+      labels:["Pending","Responded","Resolved"],
+      datasets:[{
+        data:[0,0,0],
+        backgroundColor:["rgba(255,193,7,0.75)","rgba(33,150,243,0.75)","rgba(76,255,128,0.75)"],
+        borderWidth:2,borderColor:"rgba(0,0,0,0.2)"
+      }]
+    },
+    options:{
+      responsive:true,maintainAspectRatio:false,
+      plugins:{
+        legend:{labels:{color:"#ffe8d7",font:{size:12}}},
+        tooltip:{callbacks:{label:function(c){return` ${c.label}: ${c.raw}`}}}
+      }
+    }
+  });
+}
+
+function updateStatusDonut(pending,responded,resolved){
+  if(!statusDonutChart) return;
+  statusDonutChart.data.datasets[0].data = [pending,responded,resolved];
+  statusDonutChart.update();
+}
+
+/* ═══════════════════════════════════════════════════════
+   PRIORITY BAR CHART
+═══════════════════════════════════════════════════════ */
+function buildPriorityBar(){
+  const ctx = document.getElementById("priorityBar").getContext("2d");
+  priorityBarChart = new Chart(ctx,{
+    type:"bar",
+    data:{
+      labels:["Critical","High","Medium","Low"],
+      datasets:[{
+        label:"Alerts",
+        data:[0,0,0,0],
+        backgroundColor:["rgba(255,49,49,.75)","rgba(255,139,34,.75)","rgba(255,211,106,.75)","rgba(76,255,128,.75)"],
+        borderRadius:6
+      }]
+    },
+    options:{
+      responsive:true,maintainAspectRatio:false,
+      plugins:{legend:{display:false}},
+      scales:{
+        x:{grid:{color:"rgba(255,255,255,.08)"},ticks:{color:"#ffe8d7"}},
+        y:{grid:{color:"rgba(255,255,255,.08)"},ticks:{color:"#ffe8d7"}}
+      }
+    }
+  });
+}
+
+function updatePriorityBar(critical,high,medium,low){
+  if(!priorityBarChart) return;
+  priorityBarChart.data.datasets[0].data = [critical,high,medium,low];
+  priorityBarChart.update();
+}
+
+/* ═══════════════════════════════════════════════════════
+   ALERT TREND LINE CHART
+═══════════════════════════════════════════════════════ */
+function buildTrendLine(){
+  const ctx = document.getElementById("trendLine").getContext("2d");
+  trendLineChart = new Chart(ctx,{
+    type:"line",
+    data:{
+      labels:[],
+      datasets:[{
+        label:"Alerts",
+        data:[],
+        borderColor:"rgba(255,139,34,0.85)",
+        backgroundColor:"rgba(255,139,34,0.15)",
+        pointBackgroundColor:"rgba(255,49,49,0.9)",
+        fill:true,tension:0.35,borderWidth:2,pointRadius:4
+      }]
+    },
+    options:{
+      responsive:true,maintainAspectRatio:false,
+      plugins:{legend:{display:false}},
+      scales:{
+        x:{grid:{color:"rgba(255,255,255,.08)"},ticks:{color:"#ffe8d7",maxTicksLimit:8}},
+        y:{grid:{color:"rgba(255,255,255,.08)"},ticks:{color:"#ffe8d7"}}
+      }
+    }
+  });
+}
+
+function updateTrendLine(alerts){
+  if(!trendLineChart) return;
+  // Bucket alerts by hour
+  const buckets = {};
+  alerts.forEach(a=>{
+    if(!a.timestamp) return;
+    const d    = new Date(a.timestamp);
+    const key  = `${d.getMonth()+1}/${d.getDate()} ${d.getHours()}:00`;
+    buckets[key] = (buckets[key]||0) + 1;
+  });
+  const sorted = Object.entries(buckets).sort((a,b)=>new Date(a[0])-new Date(b[0]));
+  trendLineChart.data.labels             = sorted.map(e=>e[0]);
+  trendLineChart.data.datasets[0].data   = sorted.map(e=>e[1]);
+  trendLineChart.update();
+}
+
+/* ═══════════════════════════════════════════════════════
+   LEAFLET MAPS
+═══════════════════════════════════════════════════════ */
+function buildMaps(){
+  // Hero mini-map
+  heroLeaflet = L.map("heroMap",{zoomControl:false,attributionControl:false}).setView([20,78],3);
+  L.tileLayer("https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png",{maxZoom:18}).addTo(heroLeaflet);
+
+  // Full alert map
+  fullLeaflet = L.map("alertMapFull").setView([20,78],4);
+  L.tileLayer("https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png",{
+    attribution:"© OpenStreetMap contributors",maxZoom:18
+  }).addTo(fullLeaflet);
+}
+
+function placeMapMarkers(alerts){
+  // Clear hero markers
+  heroMarkers.forEach(m=>m.remove()); heroMarkers=[];
+  // Clear full markers
+  fullMarkers.forEach(m=>m.remove()); fullMarkers=[];
+
+  alerts.forEach(alert=>{
+    if(!alert.latitude||!alert.longitude) return;
+    const color = priorityColor(alert.priority);
+    const icon  = L.divIcon({
+      className:"",
+      html:`<div style="width:16px;height:16px;border-radius:50%;background:${color};
+        border:2px solid white;box-shadow:0 0 7px ${color}"></div>`,
+      iconSize:[16,16],iconAnchor:[8,8]
+    });
+    const popup = `
+      <b>Alert:</b> ${alert.alert_id}<br>
+      <b>Risk:</b> ${alert.risk_level}<br>
+      <b>Priority:</b> ${alert.priority}<br>
+      <b>Status:</b> ${alert.status}<br>
+      <b>Message:</b> ${(alert.message||"").slice(0,120)}<br>
+      <b>Action:</b> ${(alert.recommended_action||"").slice(0,80)}`;
+
+    const hm = L.marker([alert.latitude,alert.longitude],{icon}).addTo(heroLeaflet).bindPopup(popup);
+    heroMarkers.push(hm);
+
+    const fm = L.marker([alert.latitude,alert.longitude],{icon}).addTo(fullLeaflet).bindPopup(popup);
+    fullMarkers.push(fm);
+  });
+
+  if(fullMarkers.length>0){
+    const g = L.featureGroup(fullMarkers);
+    fullLeaflet.fitBounds(g.getBounds().pad(0.2));
+  }
+}
+
+/* ═══════════════════════════════════════════════════════
+   ALERTS TABLE
+═══════════════════════════════════════════════════════ */
+async function loadAlerts(){
+  let url = "/alerts";
+  const p = [];
+  if(currentStatus!=="ALL") p.push(`status=${currentStatus}`);
+  if(currentPriority)       p.push(`priority=${currentPriority}`);
+  if(p.length) url += "?"+p.join("&");
+
+  const res  = await fetch(url);
+  const data = await res.json();
+  const tbody= document.getElementById("alertsTable");
+
+  if(!data.alerts||!data.alerts.length){
+    tbody.innerHTML=`<tr><td colspan="6" class="empty">No alerts match the current filter</td></tr>`;
+    return;
+  }
+
+  // Update trend chart with all alerts
+  const allRes  = await fetch("/alerts");
+  const allData = await allRes.json();
+  updateTrendLine(allData.alerts||[]);
+  placeMapMarkers(allData.alerts||[]);
+
+  tbody.innerHTML = data.alerts.map(a=>{
+    const ex = (a.explanations||[]).slice(0,3).map(x=>`• ${x}`).join("<br>");
+    return `<tr>
+      <td><b>${a.alert_id}</b>
+        <div class="details">${a.alert_type||"ALERT"}<br>Source: ${a.source||"System"}</div>
+      </td>
+      <td>${a.latitude}, ${a.longitude}<br>
+        <a class="map-link" href="${mapLink(a.latitude,a.longitude)}" target="_blank">📍 View Map</a>
+        <div class="details">${formatTime(a.timestamp)}</div>
+      </td>
+      <td>${(a.message||"").slice(0,120)}
+        <div class="details">Score: ${a.emergency_score||"-"} | Conf: ${a.prediction_confidence||"-"}%</div>
+      </td>
+      <td>${badge(a.risk_level)} ${badge(a.priority)} ${badge(a.status)}</td>
+      <td>${ex||"No explanation available"}
+        <div class="details"><b>Action:</b> ${a.recommended_action||"Monitor and verify."}</div>
+      </td>
+      <td>
+        <button class="action-btn" onclick="respondAlert('${a.alert_id}')">Respond ✓</button>
+        <button class="action-btn resolve" onclick="resolveAlert('${a.alert_id}')">Resolve ✓</button>
+      </td>
+    </tr>`;
+  }).join("");
+}
+
+/* ═══════════════════════════════════════════════════════
+   RESPOND / RESOLVE / CLEAR
+═══════════════════════════════════════════════════════ */
+async function respondAlert(id){
+  await fetch("/alert/respond",{method:"POST",headers:{"Content-Type":"application/json"},
+    body:JSON.stringify({alert_id:id,responder_note:"Emergency response team dispatched from command center."})});
+  refreshData();
+}
+async function resolveAlert(id){
+  await fetch("/alert/resolve",{method:"POST",headers:{"Content-Type":"application/json"},
+    body:JSON.stringify({alert_id:id,resolution_note:"Incident verified and marked resolved."})});
+  refreshData();
+}
+async function clearAll(){
+  if(!confirm("Clear all alerts? This cannot be undone.")) return;
+  await fetch("/alerts/clear",{method:"DELETE"});
+  refreshData();
+}
+
+/* ═══════════════════════════════════════════════════════
+   FILTER CONTROLS
+═══════════════════════════════════════════════════════ */
+function setFilter(s,b){
+  currentStatus=s;currentPriority="";
+  document.querySelectorAll(".filter-btn").forEach(x=>x.classList.remove("active"));
+  b.classList.add("active");refreshData();
+}
+function setPriority(p,b){
+  currentStatus="ALL";currentPriority=p;
+  document.querySelectorAll(".filter-btn").forEach(x=>x.classList.remove("active"));
+  b.classList.add("active");refreshData();
+}
+function clearFilters(){
+  currentStatus="ALL";currentPriority="";
+  document.querySelectorAll(".filter-btn").forEach(x=>x.classList.remove("active"));
+  document.querySelector(".filter-btn").classList.add("active");
+  refreshData();
+}
+
+/* ═══════════════════════════════════════════════════════
+   REFRESH ALL
+═══════════════════════════════════════════════════════ */
+async function refreshData(){
+  await loadHealth();
+  await loadSummary();
+  await loadAlerts();
+}
+
+/* ═══════════════════════════════════════════════════════
+   INIT
+═══════════════════════════════════════════════════════ */
+(function init(){
+  buildStatusDonut();
+  buildPriorityBar();
+  buildTrendLine();
+  buildMaps();
+  refreshData();
+  setInterval(refreshData, 5000);
+})();
+</script>
+</body>
+</html>

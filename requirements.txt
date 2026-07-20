@@ -1,0 +1,25 @@
+# WildFireGuard v2 — Requirements
+# ================================
+# Install with:  pip install -r requirements.txt
+
+flask
+flask-cors
+scikit-learn
+xgboost
+pandas
+numpy
+joblib
+
+# SHAP for explainable AI (optional — app runs without it using rule-based fallback)
+shap
+
+# Production server
+gunicorn
+
+# ── OPTIONAL: Voice Distress Model Training ──────────────────────────
+# Only needed if you plan to train the audio emotion model.
+# Do NOT install these unless you have the RAVDESS/CREMA-D/TESS datasets.
+# Uncomment the lines below to enable:
+# librosa
+# soundfile
+# matplotlib

@@ -1,0 +1,1 @@
+["temperature_c", "humidity_percent", "smoke_detected", "air_quality_index", "sensor_risk_index", "time_of_day", "power_line_risk", "sparking_probability", "wind_speed_kmh", "vegetation_density", "distance_to_powerline", "line_age_years", "human_activity_index", "campfire_reports", "illegal_burning_reports", "crowd_density", "vegetation_dryness", "overall_risk_score"]
