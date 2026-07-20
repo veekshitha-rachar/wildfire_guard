@@ -179,49 +179,49 @@ python run.py
 
 ### 🏠 Home Dashboard
 
-![Home Dashboard](home-dashboard.png)
+![Home Dashboard](images/home-dashboard.png)
 
 ---
 
 ### 🔥 Wildfire Prediction
 
-![Wildfire Prediction](wildfire-prediction.png)
+![Wildfire Prediction](images/wildfire-prediction.png)
 
 ---
 
 ### 📊 Risk Analytics Dashboard
 
-![Risk Analytics](risk-analytics.png)
+![Risk Analytics](images/risk-analytics.png)
 
 ---
 
 ### 📈 Monitoring Dashboard
 
-![Monitoring Dashboard](monitoring-dashboard.png)
+![Monitoring Dashboard](images/monitoring-dashboard.png)
 
 ---
 
 ### 🚨 Emergency Command Dashboard
 
-![Emergency Dashboard](emergency-dashboard.png)
+![Emergency Dashboard](images/emergency-dashboard.png)
 
 ---
 
 ### 📍 Live Alert Map
 
-![Live Alert Map](live-alert-map.png)
+![Live Alert Map](images/live-alert-map.png)
 
 ---
 
 ### 📈 Prediction Results
 
-![Prediction Results](prediction-results.png)
+![Prediction Results](images/prediction-results.png)
 
 ---
 
 ### 📋 Alert Management
 
-![Alert Management](alert-management.png)
+![Alert Management](images/alert-management.png)
 
 ## 🔮 Extending the System
 
