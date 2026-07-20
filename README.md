@@ -175,34 +175,54 @@ python run.py
 5. Alerts are generated automatically.
 6. Admin dashboard displays live alerts and their status.
 
----
-### 🏠 Home Page
-![Home Page](output_images/Screenshot%202026-04-25%20082653.png)
+## 📸 Application Screenshots
+
+### 🏠 Home Dashboard
+
+![Home Dashboard](home-dashboard.png)
 
 ---
 
 ### 🔥 Wildfire Prediction
-![Prediction](output_images/Screenshot%202026-04-25%20082703.png)
+
+![Wildfire Prediction](wildfire-prediction.png)
 
 ---
 
 ### 📊 Risk Analytics Dashboard
-![Analytics](output_images/Screenshot%202026-04-25%20082726.png)
+
+![Risk Analytics](risk-analytics.png)
+
+---
+
+### 📈 Monitoring Dashboard
+
+![Monitoring Dashboard](monitoring-dashboard.png)
 
 ---
 
 ### 🚨 Emergency Command Dashboard
-![Command Dashboard](output_images/Screenshot%202026-04-25%20082742.png)
+
+![Emergency Dashboard](emergency-dashboard.png)
 
 ---
 
 ### 📍 Live Alert Map
-![Map](output_images/Screenshot%202026-04-25%20082747.png)
+
+![Live Alert Map](live-alert-map.png)
+
+---
+
+### 📈 Prediction Results
+
+![Prediction Results](prediction-results.png)
 
 ---
 
 ### 📋 Alert Management
-![Alerts](output_images/Screenshot%202026-04-25%20082805.png)
+
+![Alert Management](alert-management.png)
+
 ## 🔮 Extending the System
 
 1. **More training data**: Add Kaggle datasets to `data/` and update `data_pipeline.py`
